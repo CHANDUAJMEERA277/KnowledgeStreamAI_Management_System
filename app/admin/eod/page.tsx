@@ -1,19 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllReports } from "@/lib/actions/eod";
+import {
+  getAllReports,
+  getEmployees,
+} from "@/lib/actions/eod";
 
 export default function AdminEodPage() {
   const [reports, setReports] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] =
+    useState("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadReports();
+    loadEmployees();
   }, []);
 
-  async function loadReports() {
+  useEffect(() => {
+    loadReports(selectedEmployee);
+  }, [selectedEmployee]);
+
+  async function loadEmployees() {
     try {
-      const data = await getAllReports();
+      const data = await getEmployees();
+      setEmployees(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadReports(employeeId = "all") {
+    try {
+      setLoading(true);
+
+      const data = await getAllReports(employeeId);
+
       setReports(data);
     } catch (err) {
       console.error(err);
@@ -35,15 +57,41 @@ export default function AdminEodPage() {
   return (
     <div className="space-y-8">
 
-      <div>
+      <div className="flex items-center justify-between">
 
-        <h1 className="text-4xl font-bold text-white">
-          EOD Reports
-        </h1>
+        <div>
 
-        <p className="text-slate-400 mt-2">
-          View all employee submissions.
-        </p>
+          <h1 className="text-4xl font-bold text-white">
+            EOD Reports
+          </h1>
+
+          <p className="text-slate-400 mt-2">
+            View all employee submissions.
+          </p>
+
+        </div>
+
+        <select
+          value={selectedEmployee}
+          onChange={(e) =>
+            setSelectedEmployee(e.target.value)
+          }
+          className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white"
+        >
+          <option value="all">
+            All Employees
+          </option>
+
+          {employees.map((emp) => (
+            <option
+              key={emp.id}
+              value={emp.id}
+            >
+              {emp.full_name}
+            </option>
+          ))}
+
+        </select>
 
       </div>
 
@@ -84,74 +132,78 @@ export default function AdminEodPage() {
           </thead>
 
           <tbody>
-
             {reports.length === 0 ? (
 
-              <tr>
+  <tr>
 
-                <td
-                  colSpan={6}
-                  className="text-center py-10 text-slate-400"
-                >
-                  No EOD Reports Found
-                </td>
+    <td
+      colSpan={6}
+      className="text-center py-10 text-slate-400"
+    >
+      No EOD Reports Found
+    </td>
 
-              </tr>
+  </tr>
 
-            ) : (
+) : (
 
-              reports.map((report) => (
+  reports.map((report) => (
 
-                <tr
-                  key={report.id}
-                  className="border-t border-slate-800 hover:bg-slate-800/40"
-                >
+    <tr
+      key={report.id}
+      className="border-t border-slate-800 hover:bg-slate-800/40 transition"
+    >
 
-                  <td className="px-6 py-5 text-white">
-                    {report.employees?.full_name}
-                  </td>
+      <td className="px-6 py-5 text-white">
+        {report.employees?.full_name}
+      </td>
 
-                  <td className="px-6 py-5 text-slate-300">
-                    {report.tasks?.title}
-                  </td>
+      <td className="px-6 py-5 text-slate-300">
+        {report.tasks?.title}
+      </td>
 
-                  <td className="px-6 py-5">
+      <td className="px-6 py-5">
 
-                    <span className="bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full">
+        <span className="rounded-full bg-blue-600/20 px-3 py-1 text-blue-400 font-medium">
 
-                      {report.progress}%
+          {report.progress}%
 
-                    </span>
+        </span>
 
-                  </td>
+      </td>
 
-                  <td className="px-6 py-5 text-slate-300 max-w-sm">
-                    {report.remarks}
-                  </td>
+      <td className="px-6 py-5 text-slate-300 max-w-sm">
 
-                  <td className="px-6 py-5">
+        {report.remarks}
 
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/eod-files/${report.file_url}`}
-                      target="_blank"
-                      className="text-blue-400 hover:underline"
-                    >
-                      View File
-                    </a>
+      </td>
 
-                  </td>
+      <td className="px-6 py-5">
 
-                  <td className="px-6 py-5 text-slate-400">
-                    {new Date(
-                      report.submitted_at
-                    ).toLocaleDateString()}
-                  </td>
+        <a
+          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/eod-files/${report.file_url}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 hover:text-blue-300 hover:underline"
+        >
+          View File
+        </a>
 
-                </tr>
+      </td>
 
-              ))
+      <td className="px-6 py-5 text-slate-400">
 
-            )}
+        {new Date(
+          report.submitted_at
+        ).toLocaleDateString()}
+
+      </td>
+
+    </tr>
+
+  ))
+
+)}
 
           </tbody>
 

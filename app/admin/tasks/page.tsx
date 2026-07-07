@@ -1,33 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTasks } from "@/lib/actions/tasks";
+import {
+  getTasks,
+  getEmployees,
+} from "@/lib/actions/tasks";
+
 import AddTaskDialog from "@/components/tasks/add-task-dialog";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] =
+    useState("all");
 
-  async function loadTasks() {
+  useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  useEffect(() => {
+    loadTasks(selectedEmployee);
+  }, [selectedEmployee]);
+
+  async function loadEmployees() {
     try {
-      const data = await getTasks();
+      const data = await getEmployees();
+      setEmployees(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function loadTasks(employeeId = "all") {
+    try {
+      const data = await getTasks(employeeId);
       setTasks(data);
     } catch (err) {
       console.error(err);
     }
   }
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
   function priorityColor(priority: string) {
     switch (priority) {
       case "Critical":
         return "bg-red-600/20 text-red-400";
+
       case "High":
         return "bg-orange-600/20 text-orange-400";
+
       case "Medium":
         return "bg-yellow-600/20 text-yellow-400";
+
       default:
         return "bg-green-600/20 text-green-400";
     }
@@ -37,8 +60,10 @@ export default function TasksPage() {
     switch (status) {
       case "Completed":
         return "bg-green-600/20 text-green-400";
+
       case "In Progress":
         return "bg-blue-600/20 text-blue-400";
+
       default:
         return "bg-orange-600/20 text-orange-400";
     }
@@ -61,7 +86,33 @@ export default function TasksPage() {
 
         </div>
 
-        <AddTaskDialog />
+        <div className="flex items-center gap-4">
+
+          <select
+            value={selectedEmployee}
+            onChange={(e) =>
+              setSelectedEmployee(e.target.value)
+            }
+            className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-white"
+          >
+            <option value="all">
+              All Employees
+            </option>
+
+            {employees.map((emp) => (
+              <option
+                key={emp.id}
+                value={emp.id}
+              >
+                {emp.full_name}
+              </option>
+            ))}
+
+          </select>
+
+          <AddTaskDialog />
+
+        </div>
 
       </div>
 
@@ -105,9 +156,9 @@ export default function TasksPage() {
 
                 <td
                   colSpan={5}
-                  className="text-center py-12 text-slate-500"
+                  className="py-12 text-center text-slate-500"
                 >
-                  No tasks assigned yet.
+                  No Tasks Found
                 </td>
 
               </tr>
@@ -123,7 +174,7 @@ export default function TasksPage() {
 
                   <td className="px-6 py-5">
 
-                    <div className="text-white font-semibold">
+                    <div className="font-semibold text-white">
                       {task.title}
                     </div>
 
@@ -136,7 +187,7 @@ export default function TasksPage() {
                   <td className="px-6 py-5">
 
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${priorityColor(
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ${priorityColor(
                         task.priority
                       )}`}
                     >
@@ -148,7 +199,7 @@ export default function TasksPage() {
                   <td className="px-6 py-5">
 
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${statusColor(
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ${statusColor(
                         task.status
                       )}`}
                     >
@@ -158,7 +209,9 @@ export default function TasksPage() {
                   </td>
 
                   <td className="px-6 py-5 text-slate-300">
-                    {new Date(task.deadline).toLocaleDateString()}
+                    {new Date(
+                      task.deadline
+                    ).toLocaleDateString()}
                   </td>
 
                 </tr>

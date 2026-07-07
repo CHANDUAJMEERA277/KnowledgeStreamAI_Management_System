@@ -1,5 +1,9 @@
 import { supabase } from "../supabase/client";
 
+/* ===========================
+   EMPLOYEE SIDE
+=========================== */
+
 export async function getAssignedTasks() {
   const {
     data: { user },
@@ -17,9 +21,15 @@ export async function getAssignedTasks() {
 
   const { data, error } = await supabase
     .from("tasks")
-    .select("id,title,status")
+    .select(`
+      id,
+      title,
+      status
+    `)
     .eq("employee_id", employee.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", {
+      ascending: false,
+    });
 
   if (error) throw error;
 
@@ -43,14 +53,16 @@ export async function getMyReports() {
 
   const { data, error } = await supabase
     .from("eod_reports")
-    .select(
-      `
+    .select(`
       *,
-      tasks(title)
-    `
-    )
+      tasks(
+        title
+      )
+    `)
     .eq("employee_id", employee.id)
-    .order("submitted_at", { ascending: false });
+    .order("submitted_at", {
+      ascending: false,
+    });
 
   if (error) throw error;
 
@@ -101,17 +113,56 @@ export async function submitEod(
   if (error) throw error;
 }
 
-export async function getAllReports() {
+/* ===========================
+   ADMIN SIDE
+=========================== */
+
+export async function getEmployees() {
   const { data, error } = await supabase
+    .from("employees")
+    .select(`
+      id,
+      full_name
+    `)
+    .order("full_name");
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function getAllReports(
+  employeeId?: string
+) {
+  let query = supabase
     .from("eod_reports")
     .select(`
       *,
-      employees(full_name),
-      tasks(title)
-    `)
-    .order("submitted_at", {
+      employees(
+        id,
+        full_name
+      ),
+      tasks(
+        title
+      )
+    `);
+
+  if (
+    employeeId &&
+    employeeId !== "all"
+  ) {
+    query = query.eq(
+      "employee_id",
+      employeeId
+    );
+  }
+
+  const { data, error } = await query.order(
+    "submitted_at",
+    {
       ascending: false,
-    });
+    }
+  );
 
   if (error) throw error;
 

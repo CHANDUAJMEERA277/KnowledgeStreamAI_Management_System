@@ -1,20 +1,51 @@
 import { supabase } from "@/lib/supabase/client";
 
-export async function getTasks() {
-  const { data, error } = await supabase
+
+export async function getTasks(employeeId?: string) {
+  let query = supabase
     .from("tasks")
     .select(`
       *,
       employees (
+        id,
         full_name
       )
-    `)
-    .order("created_at", { ascending: false });
+    `);
+
+  if (employeeId && employeeId !== "all") {
+    query = query.eq("employee_id", employeeId);
+  }
+
+  const { data, error } = await query.order("created_at", {
+    ascending: false,
+  });
 
   if (error) throw error;
 
   return data;
 }
+
+/* ===========================
+   GET EMPLOYEES
+=========================== */
+
+export async function getEmployees() {
+  const { data, error } = await supabase
+    .from("employees")
+    .select(`
+      id,
+      full_name
+    `)
+    .order("full_name");
+
+  if (error) throw error;
+
+  return data;
+}
+
+/* ===========================
+   ADD TASK
+=========================== */
 
 export async function addTask(task: {
   title: string;
@@ -31,16 +62,9 @@ export async function addTask(task: {
   if (error) throw error;
 }
 
-export async function getEmployees() {
-  const { data, error } = await supabase
-    .from("employees")
-    .select("id, full_name")
-    .order("full_name");
-
-  if (error) throw error;
-
-  return data;
-}
+/* ===========================
+   UPDATE TASK STATUS
+=========================== */
 
 export async function updateTaskStatus(
   taskId: string,
