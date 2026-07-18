@@ -62,6 +62,8 @@ export async function addTask(task: {
   if (error) throw error;
 }
 
+
+
 /* ===========================
    UPDATE TASK STATUS
 =========================== */
@@ -75,6 +77,42 @@ export async function updateTaskStatus(
     .update({
       status,
     })
+    .eq("id", taskId);
+
+  if (error) throw error;
+}
+
+/* ===========================
+   UPDATE TASK
+=========================== */
+
+export async function updateTask(
+  taskId: string,
+  task: {
+    title: string;
+    description: string;
+    employee_id: string;
+    priority: string;
+    status: string;
+    deadline: string;
+  }
+) {
+  const { error } = await supabase
+    .from("tasks")
+    .update(task)
+    .eq("id", taskId);
+
+  if (error) throw error;
+}
+
+/* ===========================
+   DELETE TASK
+=========================== */
+
+export async function deleteTask(taskId: string) {
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
     .eq("id", taskId);
 
   if (error) throw error;

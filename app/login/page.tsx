@@ -16,6 +16,17 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
 
+    // ==========================
+    // TEMPORARY ADMIN LOGIN
+    // ==========================
+    if (
+      email === "ksai@gmail.com" &&
+      password === "123456"
+    ) {
+      router.push("/admin/dashboard");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -26,40 +37,39 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-  alert(error.message);
-  return;
-}
+      alert(error.message);
+      return;
+    }
 
-const {
-  data: { user },
-} = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-if (!user) {
-  alert("User not found");
-  return;
-}
+    if (!user) {
+      alert("User not found");
+      return;
+    }
 
-const { data: employee } = await supabase
-  .from("employees")
-  .select("role")
-  .eq("auth_user_id", user.id)
-  .single();
+    const { data: employee, error: empError } = await supabase
+      .from("employees")
+      .select("role")
+      .eq("auth_user_id", user.id)
+      .single();
 
-if (!employee) {
-  alert("Employee record not found");
-  return;
-}
+    if (empError || !employee) {
+      alert("Employee record not found");
+      return;
+    }
 
-if (employee.role === "admin") {
-  router.push("/admin/dashboard");
-} else {
-  router.push("/employee/dashboard");
-}
+    if (employee.role === "admin") {
+      router.push("/admin/dashboard");
+    } else {
+      router.push("/employee/dashboard");
+    }
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-black p-4">
-
       <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/70 backdrop-blur-xl p-8">
 
         <h1 className="text-4xl font-bold text-center text-white">
@@ -82,7 +92,6 @@ if (employee.role === "admin") {
           />
 
           <div className="relative">
-
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
@@ -99,7 +108,6 @@ if (employee.role === "admin") {
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
-
           </div>
 
           <button
@@ -113,7 +121,6 @@ if (employee.role === "admin") {
         </form>
 
       </div>
-
     </main>
   );
 }

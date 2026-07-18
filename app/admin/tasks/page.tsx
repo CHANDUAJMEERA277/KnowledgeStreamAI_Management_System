@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import {
   getTasks,
   getEmployees,
+  deleteTask,
 } from "@/lib/actions/tasks";
 
 import AddTaskDialog from "@/components/tasks/add-task-dialog";
+
+import { Button } from "@/components/ui/button";
+
+import { Pencil, Trash2 } from "lucide-react";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -25,18 +31,37 @@ export default function TasksPage() {
   async function loadEmployees() {
     try {
       const data = await getEmployees();
-      setEmployees(data);
-    } catch (err) {
-      console.error(err);
+      setEmployees(data || []);
+    } catch (error) {
+      console.error(error);
     }
   }
 
   async function loadTasks(employeeId = "all") {
     try {
       const data = await getTasks(employeeId);
-      setTasks(data);
-    } catch (err) {
-      console.error(err);
+      setTasks(data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleDelete(taskId: string) {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this task?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteTask(taskId);
+
+      loadTasks(selectedEmployee);
+
+      alert("Task deleted successfully.");
+    } catch (error) {
+      console.error(error);
+      alert("Unable to delete task.");
     }
   }
 
@@ -144,18 +169,21 @@ export default function TasksPage() {
                 Deadline
               </th>
 
+              <th className="px-6 py-4 text-center text-slate-300">
+                Actions
+              </th>
+
             </tr>
 
           </thead>
 
           <tbody>
-
-            {tasks.length === 0 ? (
+                        {tasks.length === 0 ? (
 
               <tr>
 
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="py-12 text-center text-slate-500"
                 >
                   No Tasks Found
@@ -176,6 +204,10 @@ export default function TasksPage() {
 
                     <div className="font-semibold text-white">
                       {task.title}
+                    </div>
+
+                    <div className="text-sm text-slate-400 mt-1">
+                      {task.description}
                     </div>
 
                   </td>
@@ -209,9 +241,30 @@ export default function TasksPage() {
                   </td>
 
                   <td className="px-6 py-5 text-slate-300">
-                    {new Date(
-                      task.deadline
-                    ).toLocaleDateString()}
+                    {new Date(task.deadline).toLocaleDateString()}
+                  </td>
+
+                  <td className="px-6 py-5">
+
+                    <div className="flex items-center justify-center gap-2">
+
+                      <AddTaskDialog
+                        mode="edit"
+                        task={task}
+                      />
+
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() =>
+                          handleDelete(task.id)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+
+                    </div>
+
                   </td>
 
                 </tr>
@@ -219,8 +272,7 @@ export default function TasksPage() {
               ))
 
             )}
-
-          </tbody>
+                      </tbody>
 
         </table>
 

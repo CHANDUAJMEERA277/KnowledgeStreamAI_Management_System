@@ -1,18 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addTask, getEmployees } from "@/lib/actions/tasks";
 
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
-export default function AddTaskDialog() {
-  const [employees, setEmployees] = useState<any[]>([]);
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import { Plus, Pencil } from "lucide-react";
+
+import {
+  addTask,
+  updateTask,
+  getEmployees,
+} from "@/lib/actions/tasks";
+
+interface Employee {
+  id: string;
+  full_name: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  employee_id: string;
+  priority: string;
+  status: string;
+  deadline: string;
+}
+
+interface AddTaskDialogProps {
+  mode?: "add" | "edit";
+  task?: Task;
+}
+
+export default function AddTaskDialog({
+  mode = "add",
+  task,
+}: AddTaskDialogProps) {
+  const isEdit = mode === "edit";
+
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -20,139 +58,226 @@ export default function AddTaskDialog() {
   const [priority, setPriority] = useState("Medium");
   const [status, setStatus] = useState("Pending");
   const [deadline, setDeadline] = useState("");
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadEmployees();
-  }, []);
-
-  async function loadEmployees() {
-    try {
-      const data = await getEmployees();
-      setEmployees(data);
-    } catch (err) {
-      console.error(err);
+    async function loadEmployees() {
+      try {
+        const data = await getEmployees();
+        setEmployees(data || []);
+      } catch (error) {
+        console.error(error);
+      }
     }
-  }
 
-  async function handleSave() {
-    if (!title || !employeeId) {
-      alert("Task Title and Employee are required.");
+    if (open) {
+      loadEmployees();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (task && isEdit) {
+      setTitle(task.title);
+      setDescription(task.description);
+      setEmployeeId(task.employee_id);
+      setPriority(task.priority);
+      setStatus(task.status);
+      setDeadline(task.deadline?.split("T")[0] || "");
+    }
+  }, [task, isEdit]);
+
+  async function handleSubmit() {
+    if (
+      !title.trim() ||
+      !description.trim() ||
+      !employeeId ||
+      !priority ||
+      !status ||
+      !deadline
+    ) {
+      alert("Please fill all fields.");
       return;
     }
 
     try {
       setLoading(true);
 
-      await addTask({
-        title,
-        description,
-        employee_id: employeeId,
-        priority,
-        status,
-        deadline,
-      });
+      if (isEdit && task) {
+        await updateTask(task.id, {
+          title,
+          description,
+          employee_id: employeeId,
+          priority,
+          status,
+          deadline,
+        });
 
-      alert("✅ Task Assigned Successfully!");
+        alert("Task updated successfully!");
+      } else {
+        await addTask({
+          title,
+          description,
+          employee_id: employeeId,
+          priority,
+          status,
+          deadline,
+        });
+
+        alert("Task assigned successfully!");
+      }
+
+      setTitle("");
+      setDescription("");
+      setEmployeeId("");
+      setPriority("Medium");
+      setStatus("Pending");
+      setDeadline("");
+
+      setOpen(false);
 
       window.location.reload();
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Failed to create task.");
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {isEdit ? (
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <Pencil className="w-4 h-4 mr-2" />
+          Edit
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          onClick={() => setOpen(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Assign Task
+        </Button>
+      )}
 
-      <DialogTrigger className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg cursor-pointer">
-        + Assign Task
-      </DialogTrigger>
-
-      <DialogContent className="bg-slate-900 text-white max-w-xl">
-
+      <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Assign New Task</DialogTitle>
+          <DialogTitle>
+            {isEdit ? "Edit Task" : "Assign New Task"}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
-
-          <input
-            type="text"
-            placeholder="Task Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3"
-          />
-
-          <textarea
-            placeholder="Task Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 h-24"
-          />
-
-          <select
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3"
-          >
-            <option value="">Select Employee</option>
-
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.full_name}
-              </option>
-            ))}
-
-          </select>
-
-          <div className="grid grid-cols-2 gap-4">
-
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-800 p-3"
-            >
-              <option>Low</option>
-              <option>Medium</option>
-              <option>High</option>
-              <option>Critical</option>
-            </select>
-
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="rounded-lg border border-slate-700 bg-slate-800 p-3"
-            >
-              <option>Pending</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-            </select>
-
+        <div className="space-y-4">
+          <div>
+            <Label>Task Title</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter task title"
+            />
           </div>
 
-          <input
-            type="date"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3"
-          />
+          <div>
+            <Label>Description</Label>
+            <textarea
+              className="w-full border rounded-md p-2 min-h-[120px]"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter task description"
+            />
+          </div>
 
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 py-3 font-semibold"
-          >
-            {loading ? "Assigning..." : "Assign Task"}
-          </button>
+          <div>
+            <Label>Assign Employee</Label>
+            <select
+              className="w-full border rounded-md p-2 mt-1"
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
+              <option value="">Select Employee</option>
 
+              {employees.map((employee) => (
+                <option
+                  key={employee.id}
+                  value={employee.id}
+                >
+                  {employee.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Priority</Label>
+
+              <select
+                className="w-full border rounded-md p-2 mt-1"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+
+            <div>
+              <Label>Status</Label>
+
+              <select
+                className="w-full border rounded-md p-2 mt-1"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <Label>Deadline</Label>
+
+            <Input
+              type="date"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading
+                ? isEdit
+                  ? "Updating..."
+                  : "Assigning..."
+                : isEdit
+                ? "Update Task"
+                : "Assign Task"}
+            </Button>
+          </div>
         </div>
-
       </DialogContent>
-
     </Dialog>
   );
 }
