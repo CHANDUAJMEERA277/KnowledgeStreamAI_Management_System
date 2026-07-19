@@ -178,18 +178,40 @@ export default function AdminEodPage() {
 
       </td>
 
-      <td className="px-6 py-5">
+      <td className="px-6 py-5 space-x-3">
 
-        <a
-          href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/eod-files/${report.file_url}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-400 hover:text-blue-300 hover:underline"
-        >
-          View File
-        </a>
+  <a
+    href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/eod-files/${report.file_url}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-blue-400 hover:underline"
+  >
+    View
+  </a>
 
-      </td>
+  <button
+    className="text-green-400 hover:underline"
+    onClick={async () => {
+
+      if (!window.electron) {
+        alert("Please open this inside the Desktop App.");
+        return;
+      }
+
+      const result = await window.electron.saveEod({
+        employeeName: report.employees.full_name,
+        fileName: report.file_url,
+        fileUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/eod-files/${report.file_url}`,
+        submittedAt: report.submitted_at,
+      });
+
+      console.log(result);
+    }}
+  >
+    Save to PC
+  </button>
+
+</td>
 
       <td className="px-6 py-5 text-slate-400">
 
